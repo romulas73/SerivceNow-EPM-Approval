@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ui_page">
+    <sys_ui_page action="INSERT_OR_UPDATE">
+        <category>general</category>
+        <client_script><![CDATA[// Client Script Configuration:
+// Name: RITM Approval Form Script
+// UI Page: ritm_approval_form_page
+// Table: (leave blank - UI Page script)
+// Type: onLoad or onDemand
+
+function approveRITM() {
+    var ritmId = document.querySelector('[data-ritm-id]')?.getAttribute('data-ritm-id') || window.ritmId;
+    var type = document.getElementById('approved_type').value;
+    var length = document.getElementById('approved_length').value;
+    
+    if (!type) {
+        alert('Please select an approval type (Hours, Days, or Months).');
+        return;
+    }
+    
+    if (!length || length < 1) {
+        alert('Please enter a valid approval length.');
+        return;
+    }
+    
+    // Validate against max values
+    if (type === 'hour' && length > 24) {
+        alert('Hours cannot exceed 24.');
+        return;
+    }
+    if (type === 'day' && length > 30) {
+        alert('Days cannot exceed 30.');
+        return;
+    }
+    if (type === 'month' && length > 12) {
+        alert('Months cannot exceed 12.');
+        return;
+    }
+    
+    // Call the Script Include to process approval
+    var ga = new GlideAjax('RITMApprovalUtil');
+    ga.addParam('sysparm_name', 'processApproval');
+    ga.addParam('sysparm_ritm_id', ritmId);
+    ga.addParam('sysparm_approved_type', type);
+    ga.addParam('sysparm_approved_length', length);
+    ga.addParam('sysparm_action', 'approve');
+    ga.getXML(function(response) {
+        var answer = response.responseXML.documentElement.getAttribute("answer");
+        if (answer == 'success') {
+            alert('RITM approved successfully for ' + length + ' ' + type + (length > 1 ? 's' : '') + '.');
+            window.parent.location.reload();
+        } else {
+            alert('Error processing approval: ' + answer);
+        }
+    });
+}
+
+function rejectRITM() {
+
+    
+    var ritmId = document.querySelector('[data-ritm-id]')?.getAttribute('data-ritm-id') || window.ritmId;
+    
+    // Call the Script Include to process rejection
+    var ga = new GlideAjax('RITMApprovalUtil');
+    ga.addParam('sysparm_name', 'processApproval');
+    ga.addParam('sysparm_ritm_id', ritmId);
+    ga.addParam('sysparm_action', 'reject');
+    ga.getXML(function(response) {
+        var answer = response.responseXML.documentElement.getAttribute("answer");
+        if (answer == 'success') {
+            alert('RITM rejected successfully.');
+            window.parent.location.reload();
+        } else {
+            alert('Error processing rejection: ' + answer);
+        }
+    });
+}]]></client_script>
+        <description/>
+        <direct>false</direct>
+        <endpoint>x_595889_cybr_epm_cyberark_epm_approval_form_page.do</endpoint>
+        <html><![CDATA[<?xml version="1.0" encoding="utf-8" ?>
+<j:jelly trim="false" xmlns:j="jelly:core" xmlns:g="glide" xmlns:j2="null" xmlns:g2="null">
+    <g:evaluate var="jvar_ritm_id" expression="RP.getParameterValue('sysparm_ritm_id')" />
+    <g:evaluate var="jvar_ritm_data" object="true" expression="new RITMApprovalUtil().getRITMData('${jvar_ritm_id}')" />
+    
+    <style>
+        .approval-form-container {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .form-section {
+            margin-bottom: 20px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .form-field {
+            margin-bottom: 15px;
+        }
+        .form-field-full {
+            grid-column: 1 / -1;
+            margin-bottom: 15px;
+        }
+        .form-field label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .form-field .value{
+            padding: 8px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            word-wrap: break-word;
+            min-height: 10px;
+            white-space: pre-wrap;
+        }
+        .form-field-full .value {
+            padding: 8px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            word-wrap: break-word;
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+        .form-field input[type="number"],
+        .form-field select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-field select {
+            background-color: white;
+        }
+        
+        .form-field-full textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+            box-sizing: border-box;
+            min-height: 100px;
+            resize: vertical;
+            font-family: Arial, sans-serif;
+        }
+        .form-field-full textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: Arial, sans-serif;
+        }
+        .button-container {
+            margin-top: 20px;
+            text-align: right;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-approve {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-approve:hover {
+            background-color: #218838;
+        }
+        .btn-reject {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-reject:hover {
+            background-color: #c82333;
+        }
+        .section-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+        .required {
+            color: red;
+        }
+    </style>
+
+    <div class="approval-form-container">
+        <div class="section-header">Request Item Details</div>
+        
+        <div class="form-section">
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Computer Name:</label>
+                    <div class="value" id="computer_name">${jvar_ritm_data.computer_name}</div>
+                </div>
+                
+                <div class="form-field">
+                    <label>Display Name:</label>
+                    <div class="value" id="display_name">${jvar_ritm_data.display_name}</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Product Version:</label>
+                    <div class="value" id="product_version">${jvar_ritm_data.product_version}</div>
+                </div>
+                
+                <div class="form-field">
+                    <label>Product Name:</label>
+                    <div class="value" id="product_name">${jvar_ritm_data.product_name}</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-field">
+                    <label>File Package:</label>
+                    <div class="value" id="file_package">${jvar_ritm_data.file_package}</div>
+                </div>
+                
+                <div class="form-field">
+                    <label>Package Name:</label>
+                    <div class="value" id="package_name">${jvar_ritm_data.package_name}</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Username:</label>
+                    <div class="value" id="username">${jvar_ritm_data.username}</div>
+                </div>
+                
+                <div class="form-field">
+                    <label>Publisher:</label>
+                    <div class="value" id="publisher">${jvar_ritm_data.publisher}</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Original File Name:</label>
+                    <div class="value" id="original_file_name">${jvar_ritm_data.original_file_name}</div>
+                </div>
+                
+                <div class="form-field">
+                    <label>File Name:</label>
+                    <div class="value" id="file_name">${jvar_ritm_data.file_name}</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Source Type:</label>
+                    <div class="value" id="source_type">${jvar_ritm_data.source_type}</div>
+                </div>
+                
+                <div class="form-field">
+                    <label>Source Name:</label>
+                    <div class="value" id="source_name">${jvar_ritm_data.source_name}</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-field">
+                    <label>File Location:</label>
+                    <div class="value" id="file_location">${jvar_ritm_data.file_location}</div>
+                </div>
+                
+                <div class="form-field">
+                    <label>File Size:</label>
+                    <div class="value" id="file_size">${jvar_ritm_data.file_size}</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Access Type:</label>
+                    <div class="value" id="access_type">${jvar_ritm_data.access_type}</div>
+                </div>
+                
+                <div class="form-field">
+                    <label>Access Target Type:</label>
+                    <div class="value" id="access_target_type">${jvar_ritm_data.access_target_type}</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Agent ID:</label>
+                    <div class="value" id="agent_id">${jvar_ritm_data.agent_id}</div>
+                </div>
+                
+                <div class="form-field">
+                    <label>Checksum:</label>
+                    <div class="value" id="checksum">${jvar_ritm_data.checksum}</div>
+                </div>
+            </div>
+            
+            <div class="form-field-full">
+                <label>Justification:</label>
+                <div class="value justification-text">${jvar_ritm_data.justification}</div>
+            </div>
+        </div>
+
+        <div class="section-header">Approval Decision</div>
+        
+        <div class="form-section">
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Approval Type: <span class="required">*</span></label>
+                    <select id="approved_type" onchange="updateApprovalLimits()">
+                        <option value="">-- Select Type --</option>
+                        <option value="Hour">Hours</option>
+                        <option value="Day">Days</option>
+                        <option value="Month">Months</option>
+                    </select>
+                </div>
+                
+                <div class="form-field">
+                    <label>Approval Length: <span class="required">*</span></label>
+                    <input type="number" id="approved_length" min="1" max="12" value="" placeholder="Enter duration" />
+                </div>
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button class="btn btn-approve" onclick="approveRITM()">Approve</button>
+            <button class="btn btn-reject" onclick="rejectRITM()">Reject</button>
+        </div>
+    </div>
+
+    <script>
+        window.ritmId = '${jvar_ritm_id}';
+        
+        // Set default values on page load
+        window.onload = function() {
+            document.getElementById('approved_type').value = 'Month';
+            document.getElementById('approved_length').value = '12';
+        };
+        
+        function updateApprovalLimits() {
+            var typeSelect = document.getElementById('approved_type');
+            var lengthInput = document.getElementById('approved_length');
+            var selectedType = typeSelect.value;
+            
+            // Update max value and default based on type
+            if (selectedType === 'Hour') {
+                lengthInput.max = 24;
+                lengthInput.value = 24;
+            } else if (selectedType === 'Day') {
+                lengthInput.max = 30;
+                lengthInput.value = 30;
+            } else if (selectedType === 'Month') {
+                lengthInput.max = 12;
+                lengthInput.value = 12;
+            }
+            
+            lengthInput.min = 1;
+        }
+    </script>
+</j:jelly>]]></html>
+        <name>cyberark_epm_approval_form_page</name>
+        <processing_script/>
+        <sys_class_name>sys_ui_page</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-18 20:12:11</sys_created_on>
+        <sys_id>1b3da9a5c31532105f0a99cc0501310f</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>cyberark_epm_approval_form_page</sys_name>
+        <sys_package display_value="CyberArk EPM Approval Integration" source="x_595889_cybr_epm">fe1ba5a1c31532105f0a99cc0501314c</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="CyberArk EPM Approval Integration">fe1ba5a1c31532105f0a99cc0501314c</sys_scope>
+        <sys_update_name>sys_ui_page_1b3da9a5c31532105f0a99cc0501310f</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-18 20:12:11</sys_updated_on>
+    </sys_ui_page>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>1b3da9a5c31532105f0a99cc0501310f</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-18 20:12:11</sys_created_on>
+        <sys_id>e33ee1e5c31532105f0a99cc050131b9</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-18 20:12:11</sys_updated_on>
+        <table>sys_ui_page</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

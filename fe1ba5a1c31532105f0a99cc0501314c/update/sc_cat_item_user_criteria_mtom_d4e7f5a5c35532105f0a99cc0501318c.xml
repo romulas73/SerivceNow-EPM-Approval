@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sc_cat_item_user_criteria_mtom">
+    <sc_cat_item_user_criteria_mtom action="INSERT_OR_UPDATE">
+        <sc_cat_item display_value="EPM Elevation Request">f8d3f5adc31532105f0a99cc050131a3</sc_cat_item>
+        <sys_class_name>sc_cat_item_user_criteria_mtom</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-18 20:54:33</sys_created_on>
+        <sys_id>d4e7f5a5c35532105f0a99cc0501318c</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>EPM Elevation Request.Any User</sys_name>
+        <sys_package display_value="CyberArk EPM Approval Integration" source="x_595889_cybr_epm">fe1ba5a1c31532105f0a99cc0501314c</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="CyberArk EPM Approval Integration">fe1ba5a1c31532105f0a99cc0501314c</sys_scope>
+        <sys_update_name>sc_cat_item_user_criteria_mtom_d4e7f5a5c35532105f0a99cc0501318c</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-18 20:54:33</sys_updated_on>
+        <user_criteria display_value="Any User">9d73fe97c3d032105f0a99cc05013108</user_criteria>
+    </sc_cat_item_user_criteria_mtom>
+</record_update>

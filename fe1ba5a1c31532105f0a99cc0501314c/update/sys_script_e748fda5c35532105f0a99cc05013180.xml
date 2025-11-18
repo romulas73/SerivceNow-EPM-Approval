@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>false</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection/>
+        <condition>current.state.changes() &amp;&amp; current.state == 3</condition>
+        <description/>
+        <execute_function>false</execute_function>
+        <filter_condition/>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>EPM Approval</name>
+        <order>100</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[/**
+ * Business Rule Configuration:
+ * Name: Send RITM Data on Approval
+ * Table: sc_req_item
+ * When: async (use async to ensure variables are saved)
+ * Insert: false
+ * Update: true
+ * Filter Conditions: State changes to Closed Complete (3)
+ */
+
+(function executeRule(current, previous) {
+    
+    // Only fire when state changes to Closed Complete (approved)
+    if (current.state.changes() && current.state == 3) {
+        
+        gs.info('RITM ' + current.number + ' closed. Sending data to external system.');
+        
+        // Add a small delay to ensure variables are committed
+        gs.sleep(2000); // 2 second delay
+        
+        // Re-query the RITM to ensure we have the latest variable data
+        var ritm = new GlideRecord('sc_req_item');
+        ritm.get(current.sys_id);
+        
+        // Build the payload with RITM table data
+        var payload = {
+            ritm_data: {
+                sys_id: ritm.sys_id.toString(),
+                number: ritm.number.toString(),
+                short_description: ritm.short_description.toString(),
+                description: ritm.description.toString(),
+                state: ritm.state.toString(),
+                state_label: ritm.state.getDisplayValue(),
+                stage: ritm.stage.toString(),
+                priority: ritm.priority.toString(),
+                assigned_to: ritm.assigned_to.getDisplayValue(),
+                assignment_group: ritm.assignment_group.getDisplayValue(),
+                opened_by: ritm.opened_by.getDisplayValue(),
+                opened_at: ritm.opened_at.toString(),
+                closed_at: ritm.closed_at.toString(),
+                closed_by: ritm.closed_by.getDisplayValue(),
+                close_notes: ritm.close_notes.toString(),
+                request: ritm.request.number.toString(),
+                requested_for: ritm.request.requested_for.getDisplayValue(),
+                catalog_item: ritm.cat_item.getDisplayValue()
+            },
+            variables: {
+                computer_name: getVariableValue(ritm, 'computer_name'),
+                display_name: getVariableValue(ritm, 'display_name'),
+                product_version: getVariableValue(ritm, 'product_version'),
+                product_name: getVariableValue(ritm, 'product_name'),
+                file_package: getVariableValue(ritm, 'file_package'),
+                package_name: getVariableValue(ritm, 'package_name'),
+                username: getVariableValue(ritm, 'username'),
+                publisher: getVariableValue(ritm, 'publisher'),
+                original_file_name: getVariableValue(ritm, 'original_file_name'),
+                file_name: getVariableValue(ritm, 'file_name'),
+                source_type: getVariableValue(ritm, 'source_type'),
+                source_name: getVariableValue(ritm, 'source_name'),
+                file_location: getVariableValue(ritm, 'file_location'),
+                file_size: getVariableValue(ritm, 'file_size'),
+                access_type: getVariableValue(ritm, 'access_type'),
+                access_target_type: getVariableValue(ritm, 'access_target_type'),
+                agent_id: getVariableValue(ritm, 'agent_id'),
+                checksum: getVariableValue(ritm, 'checksum'),
+                justification: getVariableValue(ritm, 'justification'),
+                approved_type: getVariableValue(ritm, 'approved_type'),
+                approved_length: getVariableValue(ritm, 'approved_length')
+            }
+        };
+        
+        // Debug logging to check variable values
+        gs.info('Approved Type: ' + payload.variables.approved_type);
+        gs.info('Approved Length: ' + payload.variables.approved_length);
+        
+        try {
+            // Create REST Message
+            var request = new sn_ws.RESTMessageV2('CyberArk Flows EPM Webhook', 'POST');
+            
+            // Set request body
+            request.setRequestBody(JSON.stringify(payload));
+            
+            // Set headers
+            request.setRequestHeader('Content-Type', 'application/json');
+            request.setRequestHeader('Accept', 'application/json');
+            
+            // Execute the request
+            var response = request.execute();
+            var httpStatus = response.getStatusCode();
+            var responseBody = response.getBody();
+            
+            gs.info('REST API Response Status: ' + httpStatus);
+            gs.info('REST API Response Body: ' + responseBody);
+            
+            if (httpStatus >= 200 && httpStatus < 300) {
+                gs.info('RITM data sent successfully to external system');
+                
+                // Optional: Update a field on RITM to track successful send
+                // ritm.u_external_sync = 'success';
+                // ritm.u_external_sync_date = new GlideDateTime();
+                // ritm.setWorkflow(false);
+                // ritm.update();
+                
+            } else {
+                gs.error('REST API call failed with status: ' + httpStatus + ', Response: ' + responseBody);
+            }
+            
+        } catch (ex) {
+            gs.error('Error sending RITM data via REST: ' + ex.message);
+        }
+    }
+    
+    /**
+     * Helper function to get variable value
+     */
+    function getVariableValue(ritm, variableName) {
+        var value = '';
+        
+        var gr = new GlideRecord('sc_item_option_mtom');
+        gr.addQuery('request_item', ritm.sys_id);
+        gr.query();
+        
+        while (gr.next()) {
+            var option = gr.sc_item_option.getRefRecord();
+            if (option.item_option_new.name == variableName) {
+                value = gr.sc_item_option.value.toString();
+                break;
+            }
+        }
+        
+        return value;
+    }
+    
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-18 20:59:04</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>e748fda5c35532105f0a99cc05013180</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>EPM Approval</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="CyberArk EPM Approval Integration" source="x_595889_cybr_epm">fe1ba5a1c31532105f0a99cc0501314c</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="CyberArk EPM Approval Integration">fe1ba5a1c31532105f0a99cc0501314c</sys_scope>
+        <sys_update_name>sys_script_e748fda5c35532105f0a99cc05013180</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-18 20:59:04</sys_updated_on>
+        <template/>
+        <when>after</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=e748fda5c35532105f0a99cc05013180"/>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>e748fda5c35532105f0a99cc05013180</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-18 20:59:04</sys_created_on>
+        <sys_id>1ef8fda5c35532105f0a99cc05013184</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-18 20:59:04</sys_updated_on>
+        <table>sys_script</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

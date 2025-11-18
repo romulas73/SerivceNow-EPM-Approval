@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_595889_cybr_epm.RITMApprovalUtil</api_name>
+        <caller_access/>
+        <client_callable>true</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>RITMApprovalUtil</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var RITMApprovalUtil = Class.create();
+RITMApprovalUtil.prototype = Object.extendsObject(AbstractAjaxProcessor, {
+    
+    /**
+     * Get RITM data including all variables
+     * @param {String} ritmId - sys_id of the RITM record
+     * @returns {Object} Object containing all variable values
+     */
+    getRITMData: function(ritmId) {
+        var data = {};
+        
+        if (!ritmId) {
+            return data;
+        }
+        
+        var ritm = new GlideRecord('sc_req_item');
+        if (ritm.get(ritmId)) {
+            // Get the variables from the RITM
+            data.computer_name = this._getVariableValue(ritm, 'computer_name');
+            data.display_name = this._getVariableValue(ritm, 'display_name');
+            data.product_version = this._getVariableValue(ritm, 'product_version');
+            data.product_name = this._getVariableValue(ritm, 'product_name');
+            data.file_package = this._getVariableValue(ritm, 'file_package');
+            data.package_name = this._getVariableValue(ritm, 'package_name');
+            data.username = this._getVariableValue(ritm, 'username');
+            data.publisher = this._getVariableValue(ritm, 'publisher');
+            data.original_file_name = this._getVariableValue(ritm, 'original_file_name');
+            data.file_name = this._getVariableValue(ritm, 'file_name');
+            data.source_type = this._getVariableValue(ritm, 'source_type');
+            data.source_name = this._getVariableValue(ritm, 'source_name');
+            data.file_location = this._getVariableValue(ritm, 'file_location');
+            data.file_size = this._getVariableValue(ritm, 'file_size');
+            data.access_type = this._getVariableValue(ritm, 'access_type');
+            data.access_target_type = this._getVariableValue(ritm, 'access_target_type');
+            data.agent_id = this._getVariableValue(ritm, 'agent_id');
+            data.checksum = this._getVariableValue(ritm, 'checksum');
+            data.justification = this._getVariableValue(ritm, 'justification');
+        }
+        
+        return data;
+    },
+    
+    /**
+     * Process approval or rejection
+     * Called via AJAX from UI Page
+     */
+    processApproval: function() {
+        var ritmId = this.getParameter('sysparm_ritm_id');
+        var action = this.getParameter('sysparm_action');
+        var approvedType = this.getParameter('sysparm_approved_type');
+        var approvedLength = this.getParameter('sysparm_approved_length');
+        
+        gs.info('processApproval called - RITM: ' + ritmId + ', Action: ' + action + ', Type: ' + approvedType + ', Length: ' + approvedLength);
+        
+        if (!ritmId) {
+            return 'error: No RITM ID provided';
+        }
+        
+        var ritm = new GlideRecord('sc_req_item');
+        if (!ritm.get(ritmId)) {
+            return 'error: RITM not found';
+        }
+        
+        try {
+            if (action == 'approve') {
+                if (!approvedType || !approvedLength) {
+                    gs.error('Missing approval parameters - Type: ' + approvedType + ', Length: ' + approvedLength);
+                    return 'error: Missing approval type or length';
+                }
+                this._approveRITM(ritm, approvedType, approvedLength);
+            } else if (action == 'reject') {
+                this._rejectRITM(ritm);
+            } else {
+                return 'error: Invalid action';
+            }
+            
+            return 'success';
+        } catch (e) {
+            gs.error('Error processing RITM approval: ' + e.message);
+            return 'error: ' + e.message;
+        }
+    },
+    
+    /**
+     * Approve the RITM
+     * @param {GlideRecord} ritm - RITM record
+     * @param {String} type - Type of approval (hour, day, month)
+     * @param {String} length - Length of approval
+     */
+    _approveRITM: function(ritm, type, length) {
+        gs.info('_approveRITM called with type: ' + type + ', length: ' + length);
+        
+        // Set the approval variables FIRST
+        this._setVariableValue(ritm, 'approved_type', type);
+        this._setVariableValue(ritm, 'approved_length', length);
+        
+        // Build display text with proper pluralization
+        var displayText = length + ' ' + type;
+        if (parseInt(length) > 1) {
+            displayText += 's';
+        }
+        
+        gs.info('Setting RITM state to Closed Complete');
+        
+        // Set state to Closed Complete (3)
+        ritm.state = 3;
+        ritm.stage = 'fulfilled';
+        ritm.close_notes = 'Approved for ' + displayText + ' by ' + gs.getUserName();
+        ritm.closed_at = new GlideDateTime();
+        ritm.closed_by = gs.getUserID();
+        ritm.work_notes = 'Approved: ' + displayText;
+        
+        ritm.update();
+        
+        gs.info('RITM updated successfully');
+        
+        // Also update the parent request if all items are closed
+        this._checkAndCloseRequest(ritm.request.toString());
+    },
+    
+    /**
+     * Reject the RITM
+     * @param {GlideRecord} ritm - RITM record
+     */
+    _rejectRITM: function(ritm) {
+        // Set state to Closed Incomplete (4)
+        ritm.state = 4;
+        ritm.stage = 'request_cancelled';
+        ritm.close_notes = 'Rejected by ' + gs.getUserName();
+        ritm.closed_at = new GlideDateTime();
+        ritm.closed_by = gs.getUserID();
+        
+        ritm.update();
+        
+        // Also update the parent request if all items are closed
+        this._checkAndCloseRequest(ritm.request.toString());
+    },
+    
+    /**
+     * Get variable value from RITM
+     * @param {GlideRecord} ritm - RITM record
+     * @param {String} variableName - Name of the variable
+     * @returns {String} Variable value
+     */
+    _getVariableValue: function(ritm, variableName) {
+        var value = '';
+        
+        var gr = new GlideRecord('sc_item_option_mtom');
+        gr.addQuery('request_item', ritm.sys_id);
+        gr.query();
+        
+        while (gr.next()) {
+            var option = gr.sc_item_option.getRefRecord();
+            if (option.isValidRecord() && option.item_option_new.name == variableName) {
+                value = gr.sc_item_option.value.toString();
+                break;
+            }
+        }
+        
+        return value;
+    },
+    
+    /**
+     * Set variable value on RITM
+     * @param {GlideRecord} ritm - RITM record
+     * @param {String} variableName - Name of the variable
+     * @param {String} value - Value to set
+     */
+    _setVariableValue: function(ritm, variableName, value) {
+        // First, try to find and update existing variable
+        var gr = new GlideRecord('sc_item_option_mtom');
+        gr.addQuery('request_item', ritm.sys_id);
+        gr.query();
+        
+        var found = false;
+        while (gr.next()) {
+            var option = gr.sc_item_option.getRefRecord();
+            if (option.isValidRecord() && option.item_option_new.name == variableName) {
+                // Update the existing option value directly
+                var optionRec = new GlideRecord('sc_item_option');
+                if (optionRec.get(gr.sc_item_option)) {
+                    optionRec.value = value;
+                    optionRec.update();
+                    gs.info('Updated variable ' + variableName + ' to value: ' + value);
+                    found = true;
+                    break;
+                }
+            }
+        }
+        
+        // If variable doesn't exist, create it
+        if (!found) {
+            gs.info('Variable ' + variableName + ' not found, creating new one');
+            
+            // Find the variable definition
+            var varDef = new GlideRecord('item_option_new');
+            varDef.addQuery('name', variableName);
+            varDef.query();
+            
+            if (varDef.next()) {
+                // Create new option record
+                var newOption = new GlideRecord('sc_item_option');
+                newOption.initialize();
+                newOption.item_option_new = varDef.sys_id;
+                newOption.value = value;
+                var optionId = newOption.insert();
+                
+                if (optionId) {
+                    // Create MTOM relationship
+                    var newMtom = new GlideRecord('sc_item_option_mtom');
+                    newMtom.initialize();
+                    newMtom.request_item = ritm.sys_id;
+                    newMtom.sc_item_option = optionId;
+                    newMtom.insert();
+                    gs.info('Created new variable ' + variableName + ' with value: ' + value);
+                } else {
+                    gs.error('Failed to create sc_item_option for ' + variableName);
+                }
+            } else {
+                gs.error('Variable definition not found for: ' + variableName);
+            }
+        }
+    },
+    
+    /**
+     * Check if all items in request are closed and close request if so
+     * @param {String} requestId - sys_id of the request
+     */
+    _checkAndCloseRequest: function(requestId) {
+        var openItems = new GlideAggregate('sc_req_item');
+        openItems.addQuery('request', requestId);
+        openItems.addQuery('state', 'NOT IN', '3,4,7');
+        openItems.addAggregate('COUNT');
+        openItems.query();
+        
+        if (openItems.next() && openItems.getAggregate('COUNT') == 0) {
+            // All items are closed, close the request
+            var req = new GlideRecord('sc_request');
+            if (req.get(requestId)) {
+                req.request_state = 'closed_complete';
+                req.update();
+            }
+        }
+    },
+    
+    type: 'RITMApprovalUtil'
+});]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-18 20:18:58</sys_created_on>
+        <sys_id>7d6e2d29c31532105f0a99cc050131a9</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>RITMApprovalUtil</sys_name>
+        <sys_package display_value="CyberArk EPM Approval Integration" source="x_595889_cybr_epm">fe1ba5a1c31532105f0a99cc0501314c</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="CyberArk EPM Approval Integration">fe1ba5a1c31532105f0a99cc0501314c</sys_scope>
+        <sys_update_name>sys_script_include_7d6e2d29c31532105f0a99cc050131a9</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-18 20:18:58</sys_updated_on>
+    </sys_script_include>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>7d6e2d29c31532105f0a99cc050131a9</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-18 20:18:58</sys_created_on>
+        <sys_id>cfcf2d29c31532105f0a99cc050131af</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-18 20:18:58</sys_updated_on>
+        <table>sys_script_include</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>
