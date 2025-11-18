@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sc_cat_item_catalog">
+    <sc_cat_item_catalog action="INSERT_OR_UPDATE">
+        <sc_cat_item display_value="EPM Elevation Request">f8d3f5adc31532105f0a99cc050131a3</sc_cat_item>
+        <sc_catalog display_value="Service Catalog">e0d08b13c3330100c8b837659bba8fb4</sc_catalog>
+        <sys_class_name>sc_cat_item_catalog</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-18 20:39:48</sys_created_on>
+        <sys_id>5c94f561c35532105f0a99cc050131e6</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Service Catalog.EPM Elevation Request</sys_name>
+        <sys_package display_value="CyberArk EPM Approval Integration" source="x_595889_cybr_epm">fe1ba5a1c31532105f0a99cc0501314c</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="CyberArk EPM Approval Integration">fe1ba5a1c31532105f0a99cc0501314c</sys_scope>
+        <sys_update_name>sc_cat_item_catalog_5c94f561c35532105f0a99cc050131e6</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-18 20:39:48</sys_updated_on>
+    </sc_cat_item_catalog>
+</record_update>
