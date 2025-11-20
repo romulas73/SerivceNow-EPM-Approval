@@ -6,11 +6,16 @@
 // UI Page: ritm_approval_form_page
 // Table: (leave blank - UI Page script)
 // Type: onLoad or onDemand
+// Application: x_595889_cybr_epm
 
 function approveRITM() {
     var ritmId = document.querySelector('[data-ritm-id]')?.getAttribute('data-ritm-id') || window.ritmId;
     var type = document.getElementById('approved_type').value;
     var length = document.getElementById('approved_length').value;
+    
+    // Debug logging
+    console.log('Approval Type: ' + type);
+    console.log('Approval Length: ' + length);
     
     if (!type) {
         alert('Please select an approval type (Hours, Days, or Months).');
@@ -36,18 +41,23 @@ function approveRITM() {
         return;
     }
     
-    // Call the Script Include to process approval
-    var ga = new GlideAjax('RITMApprovalUtil');
+    // Call the Script Include to process approval with scoped namespace
+    var ga = new GlideAjax('x_595889_cybr_epm.RITMApprovalUtil');
     ga.addParam('sysparm_name', 'processApproval');
     ga.addParam('sysparm_ritm_id', ritmId);
     ga.addParam('sysparm_approved_type', type);
     ga.addParam('sysparm_approved_length', length);
     ga.addParam('sysparm_action', 'approve');
+    
+    console.log('Sending AJAX request with type: ' + type + ', length: ' + length);
+    
     ga.getXML(function(response) {
         var answer = response.responseXML.documentElement.getAttribute("answer");
+        console.log('Response from server: ' + answer);
+        
         if (answer == 'success') {
             alert('RITM approved successfully for ' + length + ' ' + type + (length > 1 ? 's' : '') + '.');
-            window.parent.location.reload();
+            //window.parent.location.reload();
         } else {
             alert('Error processing approval: ' + answer);
         }
@@ -59,8 +69,8 @@ function rejectRITM() {
     
     var ritmId = document.querySelector('[data-ritm-id]')?.getAttribute('data-ritm-id') || window.ritmId;
     
-    // Call the Script Include to process rejection
-    var ga = new GlideAjax('RITMApprovalUtil');
+    // Call the Script Include to process rejection with scoped namespace
+    var ga = new GlideAjax('x_595889_cybr_epm.RITMApprovalUtil');
     ga.addParam('sysparm_name', 'processApproval');
     ga.addParam('sysparm_ritm_id', ritmId);
     ga.addParam('sysparm_action', 'reject');
@@ -75,7 +85,7 @@ function rejectRITM() {
     });
 }]]></client_script>
         <description/>
-        <direct>false</direct>
+        <direct>true</direct>
         <endpoint>x_595889_cybr_epm_cyberark_epm_approval_form_page.do</endpoint>
         <html><![CDATA[<?xml version="1.0" encoding="utf-8" ?>
 <j:jelly trim="false" xmlns:j="jelly:core" xmlns:g="glide" xmlns:j2="null" xmlns:g2="null">
@@ -377,14 +387,14 @@ function rejectRITM() {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-11-18 20:12:11</sys_created_on>
         <sys_id>1b3da9a5c31532105f0a99cc0501310f</sys_id>
-        <sys_mod_count>0</sys_mod_count>
+        <sys_mod_count>4</sys_mod_count>
         <sys_name>cyberark_epm_approval_form_page</sys_name>
         <sys_package display_value="CyberArk EPM Approval Integration" source="x_595889_cybr_epm">fe1ba5a1c31532105f0a99cc0501314c</sys_package>
         <sys_policy/>
         <sys_scope display_value="CyberArk EPM Approval Integration">fe1ba5a1c31532105f0a99cc0501314c</sys_scope>
         <sys_update_name>sys_ui_page_1b3da9a5c31532105f0a99cc0501310f</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-18 20:12:11</sys_updated_on>
+        <sys_updated_on>2025-11-19 20:59:27</sys_updated_on>
     </sys_ui_page>
     <sys_es_latest_script action="INSERT_OR_UPDATE">
         <id>1b3da9a5c31532105f0a99cc0501310f</id>

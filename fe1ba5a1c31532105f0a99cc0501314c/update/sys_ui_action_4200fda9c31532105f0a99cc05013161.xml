@@ -36,14 +36,15 @@
 // Action name: display_approval_form
 // Form button: true
 // Client: true
+// Application: x_595889_cybr_epm
 
 function displayApprovalForm() {
     // Get the current RITM sys_id
     var ritmId = g_form.getUniqueValue();
     
     // Open the UI Page in a dialog
-    var dialog = new GlideModal('cyberark_epm_approval_form_page', false, '800');
-    dialog.setTitle('EPM Elevation Approval Form');
+    var dialog = new GlideModal('x_595889_cybr_epm_cyberark_epm_approval_form_page', false, '800');
+    dialog.setTitle('RITM Approval Form');
     dialog.setPreference('sysparm_ritm_id', ritmId);
     dialog.on('complete', function() {
         // Reload the form after approval/rejection
@@ -52,9 +53,13 @@ function displayApprovalForm() {
     dialog.render();
 }
 
-// Condition: 
-// current.state != 3 && current.state != 4
-// (Not closed complete and not closed incomplete)]]></script>
+// Condition (paste this in the Condition field): 
+// current.state != 3 && current.state != 4 && current.cat_item.name == 'EPM Elevation Request'
+// 
+// This ensures the button only appears when:
+// 1. State is not Closed Complete (3)
+// 2. State is not Closed Incomplete (4)
+// 3. Catalog item name is exactly "EPM Elevation Request"]]></script>
         <show_insert>true</show_insert>
         <show_multiple_update>false</show_multiple_update>
         <show_query>false</show_query>
@@ -65,7 +70,7 @@ function displayApprovalForm() {
         <sys_domain>global</sys_domain>
         <sys_domain_path>/</sys_domain_path>
         <sys_id>4200fda9c31532105f0a99cc05013161</sys_id>
-        <sys_mod_count>0</sys_mod_count>
+        <sys_mod_count>1</sys_mod_count>
         <sys_name>Elevation Approval</sys_name>
         <sys_overrides/>
         <sys_package display_value="CyberArk EPM Approval Integration" source="x_595889_cybr_epm">fe1ba5a1c31532105f0a99cc0501314c</sys_package>
@@ -73,7 +78,7 @@ function displayApprovalForm() {
         <sys_scope display_value="CyberArk EPM Approval Integration">fe1ba5a1c31532105f0a99cc0501314c</sys_scope>
         <sys_update_name>sys_ui_action_4200fda9c31532105f0a99cc05013161</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-18 20:23:07</sys_updated_on>
+        <sys_updated_on>2025-11-19 16:30:22</sys_updated_on>
         <table>sc_req_item</table>
         <ui11_compatible>true</ui11_compatible>
         <ui16_compatible>true</ui16_compatible>
