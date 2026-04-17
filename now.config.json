@@ -1,0 +1,6 @@
+{
+  "scope": "x_595889_cybr_epm",
+  "scopeId": "fe1ba5a1c31532105f0a99cc0501314c",
+  "name": "CyberArk EPM Approval Integration",
+  "tsconfigPath": "./src/server/tsconfig.json"
+}
